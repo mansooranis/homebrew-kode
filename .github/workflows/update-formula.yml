@@ -1,0 +1,63 @@
+name: Update formula
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Version tag to release (e.g. v0.0.2). Leave blank to use the latest release from mansooranis/kode."
+        required: false
+
+permissions:
+  contents: write
+
+jobs:
+  update-formula:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Resolve release and compute sha256
+        id: release
+        env:
+          TAG_INPUT: ${{ inputs.tag }}
+        run: |
+          tag="$TAG_INPUT"
+          if [ -z "$tag" ]; then
+            tag=$(curl -sL -H "Accept: application/vnd.github+json" \
+              https://api.github.com/repos/mansooranis/kode/releases/latest | jq -r '.tag_name')
+          fi
+          if [ -z "$tag" ] || [ "$tag" = "null" ]; then
+            echo "could not resolve a release tag" >&2
+            exit 1
+          fi
+
+          url="https://github.com/mansooranis/kode/archive/refs/tags/${tag}.tar.gz"
+          sha256=$(curl -sL "$url" | sha256sum | cut -d' ' -f1)
+          if [ -z "$sha256" ]; then
+            echo "failed to compute sha256 for $url" >&2
+            exit 1
+          fi
+
+          echo "tag=$tag" >> "$GITHUB_OUTPUT"
+          echo "url=$url" >> "$GITHUB_OUTPUT"
+          echo "sha256=$sha256" >> "$GITHUB_OUTPUT"
+
+      - name: Update formula
+        run: |
+          sed -i \
+            -e "s#^  url \".*\"#  url \"${{ steps.release.outputs.url }}\"#" \
+            -e "s#^  sha256 \".*\"#  sha256 \"${{ steps.release.outputs.sha256 }}\"#" \
+            Formula/kode.rb
+          cat Formula/kode.rb
+
+      - name: Commit and push
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          if git diff --quiet; then
+            echo "No changes to commit"
+            exit 0
+          fi
+          git add Formula/kode.rb
+          git commit -m "Update kode to ${{ steps.release.outputs.tag }}"
+          git push
