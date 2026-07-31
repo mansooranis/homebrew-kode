@@ -1,8 +1,8 @@
 class Kode < Formula
   desc "Terminal app for reviewing code changes with an AI agent built in"
   homepage "https://github.com/mansooranis/kode"
-  url "https://github.com/mansooranis/kode/archive/refs/tags/v0.0.1.tar.gz"
-  sha256 "7596bb11add1058f71ec82f2baa9e2fa45cfda26430c1a3f2120cc7bd4326aad"
+  url "https://github.com/mansooranis/kode/archive/refs/tags/v0.0.2.tar.gz"
+  sha256 "ce32c7016ea1b082496830ba51347267ce089ae7f7ceb21de70340e06c370f9b"
   license "Apache-2.0"
 
   depends_on "go" => :build
